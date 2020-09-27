@@ -1,4 +1,9 @@
-import Type.*
+import IRNode.*
+import IRNode.Body.Intrinsic.IntrinsicOp.*
+import IRNode.Expression.*
+import IRNode.Expression.PrimOp.PrimOps.*
+import Type.FnType
+import Type.PrimitiveType
 
 val int = PrimitiveType.Int
 val bool = PrimitiveType.Bool
@@ -8,48 +13,44 @@ fun fn_type(vararg parameters: Type) = FnType(parameters.toList())
 fun program(code: ProgramBuilder.() -> Unit): Program = ProgramBuilder().apply(code).finish()
 
 class ProgramBuilder {
-    val functions = mutableMapOf<String, Function>()
+    val functions = mutableMapOf<String, Continuation>()
 
     class FnBuilder(val name: String, val type: FnType) {
-        lateinit var function: Function
+        lateinit var function: Continuation
 
-        fun call(callee: IRNode.Expression, vararg arguments: IRNode.Expression) {
-            function = Pair(type, IRNode.Body(callee, arguments.toList()))
+        fun call(callee: Expression, vararg arguments: Expression) {
+            function = Continuation(name, type, Body.Call(callee, arguments.toList()))
         }
 
-        fun branch(condition: IRNode.Expression, ifTrue: IRNode.Expression, ifFalse: IRNode.Expression) {
-            val intrinsic_signature = fn_type(bool, fn_type(), fn_type())
-            function = Pair(type, IRNode.Intrinsic(
-                IRNode.Intrinsic.IntrinsicOp.BRANCH,
-                intrinsic_signature.parametersTypes, listOf(condition, ifTrue, ifFalse)
-            )
-            )
+        fun branch(condition: Expression, ifTrue: Expression, ifFalse: Expression) {
+            function = Continuation(name, type, Body.Intrinsic(BRANCH, listOf(condition, ifTrue, ifFalse)))
         }
 
-        fun param(i: Int) = IRNode.Expression.Parameter(name, i)
+        fun param(i: Int) = Expression.Parameter(name, i)
     }
+
     fun function(name: String, type: FnType, code: FnBuilder.() -> Unit) {
         functions[name] = FnBuilder(name, type).apply(code).function
     }
 
-    fun lit(int: Int) = IRNode.Expression.QuoteLiteral(Value.Literal.IntValue(int))
-    fun lit(bool: Boolean) = IRNode.Expression.QuoteLiteral(Value.Literal.BoolValue(bool))
+    fun lit(int: Int) = QuoteLiteral(Value.Literal.IntValue(int))
+    fun lit(bool: Boolean) = QuoteLiteral(Value.Literal.BoolValue(bool))
 
-    fun fn(name: String) = IRNode.Expression.Abstraction(name)
+    fun fn(name: String) = Abstraction(name)
 
-    fun add(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.ADD, listOf(lhs, rhs))
-    fun sub(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.SUB, listOf(lhs, rhs))
-    fun mul(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.MUL, listOf(lhs, rhs))
-    fun div(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.DIV, listOf(lhs, rhs))
-    fun mod(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.MOD, listOf(lhs, rhs))
+    fun add(lhs: Expression, rhs: Expression) = PrimOp(ADD, listOf(lhs, rhs))
+    fun sub(lhs: Expression, rhs: Expression) = PrimOp(SUB, listOf(lhs, rhs))
+    fun mul(lhs: Expression, rhs: Expression) = PrimOp(MUL, listOf(lhs, rhs))
+    fun div(lhs: Expression, rhs: Expression) = PrimOp(DIV, listOf(lhs, rhs))
+    fun mod(lhs: Expression, rhs: Expression) = PrimOp(MOD, listOf(lhs, rhs))
 
-    fun and(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.AND, listOf(lhs, rhs))
-    fun or(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.OR, listOf(lhs, rhs))
-    fun not(b: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.NOT, listOf(b))
+    fun and(lhs: Expression, rhs: Expression) = PrimOp(AND, listOf(lhs, rhs))
+    fun or(lhs: Expression, rhs: Expression) = PrimOp(OR, listOf(lhs, rhs))
+    fun not(b: Expression) = PrimOp(NOT, listOf(b))
 
-    fun inf(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.INF, listOf(lhs, rhs))
-    fun infeq(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.INFEQ, listOf(lhs, rhs))
-    fun eq(lhs: IRNode.Expression, rhs: IRNode.Expression) = IRNode.Expression.PrimOp(IRNode.Expression.PrimOp.PrimOps.EQ, listOf(lhs, rhs))
+    fun inf(lhs: Expression, rhs: Expression) = PrimOp(INF, listOf(lhs, rhs))
+    fun infeq(lhs: Expression, rhs: Expression) = PrimOp(INFEQ, listOf(lhs, rhs))
+    fun eq(lhs: Expression, rhs: Expression) = PrimOp(EQ, listOf(lhs, rhs))
 
     fun finish() = Program(functions)
 }

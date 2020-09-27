@@ -2,16 +2,28 @@ import IRNode.Expression.PrimOp.PrimOps.*
 
 import Value.Literal.*
 
-fun Program.evaluate(body: IRNode.Body, environment: Environment): Pair<IRNode.Body, Environment> {
-    val calledClosure = evaluate(body.callee, environment) as Value.Closure
-    val argumentsValues = body.arguments.map { evaluate(it, environment) }
-    val newEnvironment = calledClosure.environment.addOrReplaceKey(calledClosure.fn, argumentsValues)
-    return Pair(calledClosure.fn.second, newEnvironment)
+fun Program.evaluate(continuation: IRNode.Continuation, environment: Environment): Pair<IRNode.Continuation, Environment> {
+    val argumentsValues = continuation.body.arguments.map { evaluate(it, environment) }
+    return when(continuation.body) {
+        is IRNode.Body.Call -> {
+            val calledClosure = evaluate(continuation.body.callee, environment) as Value.Closure
+            val newEnvironment = calledClosure.environment.addOrReplaceKey(calledClosure.fn, argumentsValues)
+            Pair(calledClosure.fn, newEnvironment)
+        }
+        is IRNode.Body.Intrinsic -> {
+            when(continuation.body.intrinsicOp) {
+                IRNode.Body.Intrinsic.IntrinsicOp.BRANCH -> {
+                    val jumpTo = argumentsValues[if(boolValue(argumentsValues[0])) 2 else 1] as Value.Closure
+                    Pair(jumpTo.fn, jumpTo.environment)
+                }
+            }
+        }
+    }
 }
 
 fun Program.evaluate(expression: IRNode.Expression, environment: Environment): Value = when(expression) {
     is IRNode.Expression.PrimOp -> evaluate(expression, expression.operands.map { evaluate(it, environment) })
-    is IRNode.Expression.Abstraction -> Value.Closure(labels[expression.fnName] ?: error("Unbound function name: "+expression.fnName), expression.fnName, environment)
+    is IRNode.Expression.Abstraction -> Value.Closure(labels[expression.fnName] ?: error("Unbound function name: "+expression.fnName), environment)
     is IRNode.Expression.Parameter -> environment[labels[expression.fnName] ?: error("Unbound function name: "+expression.fnName)]!![expression.i]
     is IRNode.Expression.QuoteLiteral -> expression.lit
     is IRNode.Expression.Cast -> castValue(evaluate(expression.source, environment), expression.dstType)

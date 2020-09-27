@@ -1,7 +1,7 @@
 fun Program.visit(visitor: (IRNode)->Unit ) {
     val visited = mutableSetOf<IRNode>()
     for(f in labels.values) {
-        visit(f.second, visited, visitor)
+        visit(f, visited, visitor)
     }
 }
 
@@ -12,6 +12,9 @@ fun Program.visit(node: IRNode, visited: MutableSet<IRNode> = mutableSetOf(), vi
     visited += node
     visitor(node)
     when (node) {
+        is IRNode.Continuation -> {
+            visit(node.body, visited, visitor)
+        }
         is IRNode.Body -> {
             node.arguments.forEach { visit(it, visited, visitor) }
         }
@@ -19,10 +22,10 @@ fun Program.visit(node: IRNode, visited: MutableSet<IRNode> = mutableSetOf(), vi
             node.operands.forEach { visit(it, visited, visitor) }
         }
         is IRNode.Expression.Abstraction -> {
-            visit(labels[node.fnName]!!.second.callee, visited, visitor)
+            visit(labels[node.fnName]!!.body, visited, visitor)
         }
         is IRNode.Expression.Parameter -> {
-            visit(labels[node.fnName]!!.second.arguments[node.i], visited, visitor)
+            visit(labels[node.fnName]!!.body.arguments[node.i], visited, visitor)
         }
         is IRNode.Expression.QuoteLiteral -> {}
         is IRNode.Expression.Cast -> visit(node.source, visited, visitor)
@@ -42,7 +45,7 @@ fun Program.isInSubtree(what: IRNode, where: IRNode): Boolean {
 fun Program.findUses(node: IRNode) : List<IRNode> {
     val list = mutableListOf<IRNode>()
     for(f in labels.values) {
-        visit(f.second) {
+        visit(f) {
             if(it == node) {
                 list += node
             }
@@ -51,21 +54,21 @@ fun Program.findUses(node: IRNode) : List<IRNode> {
     return list
 }
 
-fun Program.isLive(fn: Function, from: Function): Boolean {
+fun Program.isLive(fn: IRNode.Continuation, from: IRNode.Continuation): Boolean {
     if(fn == from)
         return false
-    val fbody = fn.second
-    for(i in 0 .. from.second.arguments.size) {
-        val li = from.second.arguments[i]
+    val fbody = fn.body
+    for(i in 0 .. from.body.arguments.size) {
+        val li = from.body.arguments[i]
         if(isInSubtree(li, fbody))
             return true
     }
     return false
 }
 
-fun Program.scope(function: Function) {
-    val body = function.second
-    val scope = mutableSetOf<Function>()
+fun Program.scope(continuation: IRNode.Continuation) {
+    val body = continuation.body
+    val scope = mutableSetOf<IRNode.Continuation>()
     for(f in labels.values) {
         TODO()
     }

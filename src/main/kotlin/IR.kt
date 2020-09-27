@@ -1,8 +1,9 @@
-typealias Function = Pair<Type.FnType, IRNode.Body>
-typealias Environment = Map<Function, List<Value>>
+import java.lang.RuntimeException
 
-class Program(val labels: Map<String, Function>) {
-    override fun toString() = labels.map { (k, v) -> "$k : ${v.first} = ${v.second}" }.joinToString("\n")
+typealias Environment = Map<IRNode.Continuation, List<Value>>
+
+class Program(val labels: Map<String, IRNode.Continuation>) {
+    override fun toString() = labels.map { (k, v) -> "$k : ${v.signature} = ${v.body}" }.joinToString("\n")
 }
 
 /** Do we consider types as part of the (main) IR graph ? We don't have dependent types so far, so I'd say no */
@@ -23,17 +24,18 @@ sealed class Type {
 }
 
 sealed class IRNode {
-    open class Body(val callee: Expression, val arguments: List<Expression>) : IRNode() {
-        override fun toString() = "$callee(" + arguments.joinToString(", ") { it.toString() } + ")"
-    }
+    data class Continuation(val name: String, val signature: Type.FnType, val body: Body) : IRNode()
 
-    class Intrinsic(val intrinsicOp: IntrinsicOp, argumentsTypes: List<Type>, arguments: List<Expression>) :
-        Body(Expression.QuoteLiteral(Value.Literal.Bottom(Type.FnType(argumentsTypes))), arguments) {
+    sealed class Body(val arguments: List<Expression>) : IRNode() {
+        class Call(val callee: Expression, arguments: List<Expression>) : Body(arguments) {
+            override fun toString() = "$callee(" + arguments.joinToString(", ") { it.toString() } + ")"
+        }
+        class Intrinsic(val intrinsicOp: IntrinsicOp, arguments: List<Expression>/*, val argumentsTypes: List<Type>, arguments: List<Expression>*/) : Body(arguments) {
+            override fun toString() = "$intrinsicOp(" + arguments.joinToString(", ") { it.toString() } + ")"
 
-        override fun toString() = "$intrinsicOp(" + arguments.joinToString(", ") { it.toString() } + ")"
-
-        enum class IntrinsicOp {
-            BRANCH
+            enum class IntrinsicOp {
+                BRANCH
+            }
         }
     }
 
@@ -88,7 +90,10 @@ sealed class Value {
         }
     }
 
-    data class Closure(val fn: Function, val fnName: String, val environment: Environment) : Value() {
-        override fun toString() = "<$fnName: ${fn.first}, $environment>"
+    data class Closure(val fn: IRNode.Continuation, val environment: Environment) : Value() {
+        override fun toString() = "<${fn.name}: ${fn.signature}, $environment>"
     }
 }
+
+fun boolValue(value: Value) = (value as? Value.Literal.BoolValue)?.value ?: throw RuntimeException("$value was not a boolean")
+fun intValue(value: Value) = (value as? Value.Literal.IntValue)?.value ?: throw RuntimeException("$value was not an integer")

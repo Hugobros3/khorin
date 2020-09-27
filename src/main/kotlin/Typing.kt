@@ -2,25 +2,32 @@ import IRNode.Expression.PrimOp.PrimOps.*
 
 class TypeException(msg: String) : Exception(msg)
 
-fun type(program: Program) = program.labels.forEach { program.type(it.key, it.value) }
+fun type(program: Program) = program.labels.forEach { program.type(it.value) }
 
-fun Program.type(functionName: String, function: Function) {
-    val calleeType = type(function.second.callee)
-    if(calleeType !is Type.FnType)
-        throw TypeException("In function '$functionName', callee does not type (should be of type Fn, is $calleeType)")
+fun Program.type(function: IRNode.Continuation) {
+    val calleeSignature = signature(function.body)
+    if(calleeSignature !is Type.FnType)
+        throw TypeException("In function '${function.name}', callee does not type (should be of type Fn, is $calleeSignature)")
 
-    calleeType.parametersTypes.zip(function.second.arguments).forEachIndexed { i, (pt, arg) ->
+    calleeSignature.parametersTypes.zip(function.body.arguments).forEachIndexed { i, (pt, arg) ->
         if (type(arg) != pt)
-            throw TypeException("In function '$functionName', callee argument $i does not type (is ${type(arg)}, should be $pt)")
+            throw TypeException("In function '${function.name}', callee argument $i does not type (is ${type(arg)}, should be $pt)")
+    }
+}
+
+fun Program.signature(body: IRNode.Body) = when(body) {
+    is IRNode.Body.Call -> type(body.callee)
+    is IRNode.Body.Intrinsic -> when(body.intrinsicOp) {
+        IRNode.Body.Intrinsic.IntrinsicOp.BRANCH -> fn_type(bool, fn_type(), fn_type())
     }
 }
 
 fun Program.type(expression: IRNode.Expression): Type = when (expression) {
     is IRNode.Expression.PrimOp -> type(expression)
     is IRNode.Expression.Abstraction -> (labels[expression.fnName]
-        ?: error("Unbound function name: " + expression.fnName)).first
+        ?: error("Unbound function name: " + expression.fnName)).signature
     is IRNode.Expression.Parameter -> (labels[expression.fnName]
-        ?: error("Unbound function name: " + expression.fnName)).first.parametersTypes[expression.i]
+        ?: error("Unbound function name: " + expression.fnName)).signature.parametersTypes[expression.i]
 
     is IRNode.Expression.QuoteLiteral -> expression.lit.type
     is IRNode.Expression.Cast -> type(expression)

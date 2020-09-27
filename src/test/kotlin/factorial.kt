@@ -39,7 +39,7 @@ fun factorialProgram() = program {
 
 class TestFactorial {
     @Test
-    fun testFactorial() {
+    fun testTyping() {
         val p = factorialProgram()
         type(p)
     }
@@ -55,6 +55,6 @@ class TestFactorial {
     fun testScopes() {
         val p = factorialProgram()
 
-        println("Uses: "+p.findUses(p.labels["fac"]!!.second))
+        println("Uses: "+p.findUses(p.labels["fac"]!!))
     }
 }
