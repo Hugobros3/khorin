@@ -39,7 +39,7 @@ sealed class IRNode {
             override fun toString() = "$intrinsicOp(" + arguments.joinToString(", ") { it.toString() } + ")"
 
             enum class IntrinsicOp {
-                BRANCH
+                BRANCH,
             }
         }
     }

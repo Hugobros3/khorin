@@ -60,4 +60,12 @@ class TestFactorial {
 
         println(p)
     }
+
+    @Test
+    fun testEvaluation() {
+        val p = factorialProgram()
+
+        val facFN = p.labels["fac"]!!
+        p.run(facFN, mutableMapOf(facFN to listOf(Value.Literal.IntValue(7), Value.Literal.Bottom(fn_type(int)))))
+    }
 }
