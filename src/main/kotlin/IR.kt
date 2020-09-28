@@ -24,7 +24,10 @@ sealed class Type {
 }
 
 sealed class IRNode {
-    data class Continuation(val name: String, val signature: Type.FnType, val body: Body) : IRNode()
+    data class Continuation(val name: String, val signature: Type.FnType, val body: Body) : IRNode() {
+        val abstraction = Expression.Abstraction(name)
+        val parameters = signature.parametersTypes.mapIndexed { i, _ -> Expression.Parameter(name, i) }
+    }
 
     sealed class Body(val arguments: List<Expression>) : IRNode() {
         class Call(val callee: Expression, arguments: List<Expression>) : Body(arguments) {

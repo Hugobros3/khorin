@@ -55,6 +55,9 @@ class TestFactorial {
     fun testScopes() {
         val p = factorialProgram()
 
-        println("Uses: "+p.findUses(p.labels["fac"]!!))
+        println("Uses: "+p.findUses(p.labels["else"]!!))
+        println(p.scope(p.labels["else"]!!))
+
+        println(p)
     }
 }
