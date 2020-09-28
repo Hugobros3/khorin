@@ -16,6 +16,8 @@ fun Program.visitSubgraph(node: IRNode, visited: MutableSet<IRNode> = mutableSet
             visitSubgraph(node.body, visited, visitor)
         }
         is IRNode.Body -> {
+            if (node is IRNode.Body.Call)
+                visitSubgraph(node.callee, visited, visitor)
             node.arguments.forEach { visitSubgraph(it, visited, visitor) }
         }
         is IRNode.Expression.PrimOp -> {
@@ -27,43 +29,44 @@ fun Program.visitSubgraph(node: IRNode, visited: MutableSet<IRNode> = mutableSet
         is IRNode.Expression.Parameter -> {
             visitSubgraph(labels[node.fnName]!!.body.arguments[node.i], visited, visitor)
         }
-        is IRNode.Expression.QuoteLiteral -> {
-        }
+        is IRNode.Expression.QuoteLiteral -> { }
         is IRNode.Expression.Cast -> visitSubgraph(node.source, visited, visitor)
     }
 }
 
-fun Program.isInSubtree(what: IRNode, where: IRNode): Boolean {
-    var found = false
-    visitSubgraph(where) {
-        if (it == what) {
-            found = true
+fun Program.uses() : Map<IRNode, Set<IRNode>> {
+    val uses = mutableMapOf<IRNode, MutableSet<IRNode>>()
+
+    fun addDep(node: IRNode, of: IRNode) {
+        uses[of]!!.add(node)
+    }
+
+    fun visitExpression(expression: IRNode.Expression) {
+        when(expression) {
+            is IRNode.Expression.PrimOp -> expression.operands.forEach { addDep(expression, it) }
+            is IRNode.Expression.Abstraction -> addDep(expression, labels[expression.fnName]!!)
+            is IRNode.Expression.Parameter -> addDep(expression, labels[expression.fnName]!!.parameters[expression.i])
+            is IRNode.Expression.QuoteLiteral -> { }
+            is IRNode.Expression.Cast -> addDep(expression, expression.source)
         }
     }
-    return found
-}
 
-fun Program.findUses(node: IRNode, uses: MutableSet<IRNode> = mutableSetOf<IRNode>()): Set<IRNode> {
-    visitGraph { user ->
-        visitSubgraph(user) { used ->
-            if (used == node && !uses.contains(user)) {
-                uses += user
+    fun visitNode(node: IRNode) {
+        when(node) {
+            is IRNode.Continuation -> addDep(node, node.body)
+            is IRNode.Body.Call -> {
+                addDep(node, node.callee)
+                node.arguments.forEach { addDep(node, it) }
             }
+            is IRNode.Body.Intrinsic -> node.arguments.forEach { addDep(node, it) }
+            is IRNode.Expression -> visitExpression(node)
         }
     }
-    return uses
-}
 
-fun Program.isLive(node: IRNode.Continuation, scopeEntry: IRNode.Continuation): Boolean {
-    if (node == scopeEntry)
-        return false
-    val fbody = node.body
-    for (i in 0..scopeEntry.body.arguments.size) {
-        val li = scopeEntry.body.arguments[i]
-        if (isInSubtree(li, fbody))
-            return true
-    }
-    return false
+    visitGraph { uses[it] = mutableSetOf() }
+    visitGraph { visitNode(it) }
+
+    return uses
 }
 
 data class Scope(val nodes: Set<IRNode>)
@@ -93,7 +96,7 @@ fun Program.scope(scopeEntry: IRNode.Continuation): Scope {
         val node = queue.removeAt(0)
         if (node == scopeEntry)
             continue
-        for (use in findUses(node)) {
+        for (use in uses[node]!!) {
             enqueue(use)
         }
     }
