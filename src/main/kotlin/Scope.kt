@@ -6,7 +6,7 @@ fun Program.visitGraph(visitor: (IRNode) -> Unit) {
 }
 
 fun Program.visitSubgraph(node: IRNode, visited: MutableSet<IRNode> = mutableSetOf(), visitor: (IRNode) -> Unit) {
-    if (visited.contains(node))
+    if (node in visited)
         return
 
     visited += node
@@ -78,7 +78,7 @@ fun Program.scope(scopeEntry: IRNode.Continuation): Scope {
     val queue = mutableListOf<IRNode>()
 
     fun enqueue(node: IRNode) {
-        if (!nodes.contains(node)) {
+        if (node !in nodes) {
             nodes.add(node)
 
             queue.add(node)
