@@ -12,11 +12,11 @@ class Program(val labels: Map<String, IRNode.Continuation>) {
 sealed class Type {
     sealed class PrimitiveType : Type() {
         object Int : PrimitiveType() {
-            override fun toString() = "int"
+            override fun toString() = "util.getInt"
         }
 
         object Bool : PrimitiveType() {
-            override fun toString() = "bool"
+            override fun toString() = "util.getBool"
         }
     }
 

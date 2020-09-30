@@ -1,4 +1,7 @@
 import org.junit.Test
+import util.fn_type
+import util.int
+import util.program
 
 fun factorialProgram() = program {
     var n: IRNode.Expression = lit(-1) // NB: we don't care about this literal, we just need to init this to something to set it later in "fac"

@@ -1,4 +1,6 @@
 import IRNode.Expression.PrimOp.PrimOps.*
+import util.bool
+import util.fn_type
 
 class TypeException(msg: String) : Exception(msg)
 
@@ -64,7 +66,7 @@ fun Program.type(primOp: IRNode.Expression.PrimOp): Type {
 }
 
 fun Program.type(cast: IRNode.Expression.Cast): Type {
-    // Only allow int <-> bool casts
+    // Only allow util.getInt <-> util.getBool casts
     val sourceType = type(cast.source)
     if (sourceType == int_t && cast.dstType == bool_t)
         return bool_t

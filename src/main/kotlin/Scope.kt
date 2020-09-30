@@ -69,7 +69,9 @@ fun Program.uses() : Map<IRNode, Set<IRNode>> {
     return uses
 }
 
-data class Scope(val nodes: Set<IRNode>)
+data class Scope(val nodes: Set<IRNode>) {
+    val continuations = nodes.filterIsInstance<IRNode.Continuation>()
+}
 
 fun Program.scope(scopeEntry: IRNode.Continuation): Scope {
     val nodes = mutableSetOf<IRNode>()

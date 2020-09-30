@@ -1,9 +1,14 @@
+package util
+
 import IRNode.*
 import IRNode.Body.Intrinsic.IntrinsicOp.*
 import IRNode.Expression.*
 import IRNode.Expression.PrimOp.PrimOps.*
+import Program
+import Type
 import Type.FnType
 import Type.PrimitiveType
+import Value
 
 val int = PrimitiveType.Int
 val bool = PrimitiveType.Bool
