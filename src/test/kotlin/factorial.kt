@@ -1,11 +1,10 @@
+import analyses.callGraph
 import org.junit.Test
-import util.DotPrinter
-import util.fn_type
-import util.int
-import util.program
+import util.*
 import java.io.File
 import java.io.FileWriter
 
+/** Factorial program as in Fig. 2(d) */
 fun factorialProgram() = program {
     var n: IRNode.Expression = lit(-1) // NB: we don't care about this literal, we just need to init this to something to set it later in "fac"
     var ret = n // same deal
@@ -71,11 +70,22 @@ class TestFactorial {
     }
 
     @Test
-    fun testDotPrinter() {
+    fun testIRDotPrinter() {
         //val w = System.out.bufferedWriter()
-        val f = File("test.dot")
+        val f = File("ir.dot")
         val w = FileWriter(f)
-        DotPrinter(p, w).print()
+        IRDotPrinter(p, w).print()
+        w.flush()
+
+        println(f.absoluteFile.path)
+    }
+
+    @Test
+    fun testGraphDotPrinter() {
+        //val w = System.out.bufferedWriter()
+        val f = File("calls.dot")
+        val w = FileWriter(f)
+        CallGraphPrinter(p.callGraph(), w).print()
         w.flush()
 
         println(f.absoluteFile.path)

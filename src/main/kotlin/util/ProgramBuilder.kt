@@ -40,6 +40,7 @@ class ProgramBuilder {
 
     fun lit(int: Int) = QuoteLiteral(Value.Literal.IntValue(int))
     fun lit(bool: Boolean) = QuoteLiteral(Value.Literal.BoolValue(bool))
+    fun bot(type: Type) = QuoteLiteral(Value.Literal.Bottom(type))
 
     fun fn(name: String) = Abstraction(name)
 
