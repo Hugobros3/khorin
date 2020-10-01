@@ -37,7 +37,7 @@ fun Program.evaluate(continuation: IRNode.Continuation, environment: Environment
 }
 
 fun Program.evaluate(expression: IRNode.Expression, environment: Environment): Value = when(expression) {
-    is IRNode.Expression.PrimOp -> evaluate(expression, expression.operands.map { evaluate(it, environment) })
+    is IRNode.Expression.PrimOp -> evaluate(expression.op, expression.operands.map { evaluate(it, environment) })
     is IRNode.Expression.Abstraction -> Value.Closure(labels[expression.fnName] ?: error("Unbound function name: "+expression.fnName), environment)
     is IRNode.Expression.Parameter -> (environment[labels[expression.fnName] ?: error("Unbound function name: "+expression.fnName)] ?: error("No env for ${expression.fnName}") )[expression.i]
     is IRNode.Expression.QuoteLiteral -> expression.lit
@@ -49,11 +49,11 @@ fun castValue(value: Value, dstType: Type): Value = when (dstType) {
     else -> IntValue(if ((value as BoolValue).value) 1 else 0)
 }
 
-fun evaluate(primOp: IRNode.Expression.PrimOp, ops: List<Value>) : Value {
+fun evaluate(op: IRNode.Expression.PrimOp.PrimOps, ops: List<Value>) : Value.Literal {
     fun intValues() = ops.map { (it as IntValue).value }
     fun boolValues() = ops.map { (it as BoolValue).value }
 
-    return when(primOp.op) {
+    return when(op) {
         ADD -> IntValue(intValues()[0] + intValues()[1])
         SUB -> IntValue(intValues()[0] - intValues()[1])
         MUL -> IntValue(intValues()[0] * intValues()[1])

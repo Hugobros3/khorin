@@ -66,3 +66,6 @@ class ProgramBuilder {
 
     fun finish() = Program(functions)
 }
+
+fun lit(int: Int) = QuoteLiteral(Value.Literal.IntValue(int))
+fun lit(bool: Boolean) = QuoteLiteral(Value.Literal.BoolValue(bool))

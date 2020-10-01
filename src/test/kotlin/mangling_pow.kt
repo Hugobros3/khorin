@@ -2,6 +2,7 @@ import analyses.callGraph
 import org.junit.Test
 import util.*
 import xform.mangle
+import xform.simplify
 import xform.substitute
 import java.io.File
 import java.io.FileWriter
@@ -102,7 +103,6 @@ class TestFig6Mangling {
         }.toMap()
 
         val a = oldpow.parameters[0]
-        println(a == a)
         val b = oldpow.parameters[1]
         val mangled = p.mangle(oldpow, "pow_d", fn_type(int),
             mutableMapOf(
@@ -113,9 +113,11 @@ class TestFig6Mangling {
 
         val fixedCallsites = mangled.substitute(callsiteUpdates)
 
+        val simplified = fixedCallsites.simplify()
+
         val f = File("ir.dot")
         val w = FileWriter(f)
-        IRDotPrinter(fixedCallsites, w).print()
+        IRDotPrinter(simplified, w).print()
         w.flush()
     }
 }
