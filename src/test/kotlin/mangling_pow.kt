@@ -1,6 +1,8 @@
 import analyses.callGraph
 import org.junit.Test
 import util.*
+import xform.mangle
+import xform.substitute
 import java.io.File
 import java.io.FileWriter
 
@@ -82,5 +84,33 @@ class TestFig6Mangling {
         w.flush()
 
         println(f.absoluteFile.path)
+    }
+
+    @Test
+    fun dropTest() {
+        val oldpow = p.labels["pow"] as IRNode.Continuation
+
+        val callsiteUpdates: Map<IRNode, IRNode> = p.uses[oldpow]!!.flatMap { use ->
+            val use = use as IRNode.Expression.Abstraction
+            p.uses[use]!!.map {
+                val call = it as IRNode.Body.Call
+                val newcall = IRNode.Body.Call(IRNode.Expression.Abstraction("pow_d"), listOf(call.arguments[0]))
+                Pair(call, newcall)
+            }
+        }.toMap()
+
+        val b = oldpow.parameters[1]
+        val mangled = p.mangle(oldpow, "pow_d", fn_type(int),
+            mutableMapOf(
+                b to IRNode.Expression.QuoteLiteral(Value.Literal.IntValue(3))
+            )
+        )
+
+        val fixedCallsites = mangled.substitute(callsiteUpdates)
+
+        val f = File("ir.dot")
+        val w = FileWriter(f)
+        IRDotPrinter(fixedCallsites, w).print()
+        w.flush()
     }
 }
