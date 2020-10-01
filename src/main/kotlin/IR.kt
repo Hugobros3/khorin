@@ -5,7 +5,7 @@ typealias Environment = Map<IRNode.Continuation, List<Value>>
 class Program(val labels: Map<String, IRNode.Continuation>) {
     override fun toString() = labels.map { (k, v) -> "$k : ${v.signature} = ${v.body}" }.joinToString("\n")
 
-    val uses = uses()
+    val uses by lazy { uses() }
 }
 
 /** Do we consider types as part of the (main) IR graph ? We don't have dependent types so far, so I'd say no */
@@ -26,9 +26,11 @@ sealed class Type {
 }
 
 sealed class IRNode {
-    data class Continuation(val name: String, val signature: Type.FnType, val body: Body) : IRNode() {
+    data class Continuation(val name: String, val attributes: Attributes, val signature: Type.FnType, val body: Body) : IRNode() {
         val abstraction = Expression.Abstraction(name)
         val parameters = signature.parametersTypes.mapIndexed { i, _ -> Expression.Parameter(name, i) }
+
+        data class Attributes(val isExternal: Boolean = false)
     }
 
     sealed class Body(val arguments: List<Expression>) : IRNode() {

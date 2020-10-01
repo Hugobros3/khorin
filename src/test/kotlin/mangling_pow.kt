@@ -18,6 +18,8 @@ class TestFig6Mangling {
         var r: IRNode.Expression = bot(fn_type())
 
         function("f", fn_type(int, int, fn_type(int))) {
+            markExternal()
+
             x = param(0)
             y = param(1)
             ret = param(2)
@@ -99,9 +101,12 @@ class TestFig6Mangling {
             }
         }.toMap()
 
+        val a = oldpow.parameters[0]
+        println(a == a)
         val b = oldpow.parameters[1]
         val mangled = p.mangle(oldpow, "pow_d", fn_type(int),
             mutableMapOf(
+                a to IRNode.Expression.Parameter("pow_d", 0),
                 b to IRNode.Expression.QuoteLiteral(Value.Literal.IntValue(3))
             )
         )

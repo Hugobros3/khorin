@@ -10,9 +10,11 @@ fun factorialProgram() = program {
     var ret = n // same deal
 
     function("fac", fn_type(int, fn_type(int))) {
-        val condition = infeq(param(0), lit(0)) // n <= 0
+        markExternal()
         n = param(0) // save a reference to fac's "n" parameter
         ret = param(1) // save a reference to fac's "ret" parameter
+
+        val condition = infeq(param(0), lit(0)) // n <= 0
         branch(condition, fn("then"), fn("else"))
     }
 

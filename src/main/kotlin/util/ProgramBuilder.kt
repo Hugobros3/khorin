@@ -23,12 +23,18 @@ class ProgramBuilder {
     class FnBuilder(val name: String, val type: FnType) {
         lateinit var function: Continuation
 
+        var attributes = Continuation.Attributes()
+
+        fun markExternal() {
+            attributes = attributes.copy(isExternal = true)
+        }
+
         fun call(callee: Expression, vararg arguments: Expression) {
-            function = Continuation(name, type, Body.Call(callee, arguments.toList()))
+            function = Continuation(name, attributes, type, Body.Call(callee, arguments.toList()))
         }
 
         fun branch(condition: Expression, ifTrue: Expression, ifFalse: Expression) {
-            function = Continuation(name, type, Body.Intrinsic(BRANCH, listOf(condition, ifTrue, ifFalse)))
+            function = Continuation(name, attributes, type, Body.Intrinsic(BRANCH, listOf(condition, ifTrue, ifFalse)))
         }
 
         fun param(i: Int) = Expression.Parameter(name, i)

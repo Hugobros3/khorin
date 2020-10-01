@@ -22,7 +22,12 @@ private fun IRNode.label(): String = when(this) {
 }
 
 private fun IRNode.appearance(): DotPrinter.NodeAppearance = when(this) {
-    is IRNode.Continuation -> DotPrinter.NodeAppearance("rectangle")
+    is IRNode.Continuation -> {
+        if(attributes.isExternal)
+            DotPrinter.NodeAppearance("rectangle", color = "pink", style = "filled")
+        else
+            DotPrinter.NodeAppearance("rectangle")
+    }
     is IRNode.Expression.Parameter -> DotPrinter.NodeAppearance(color = "lightgrey")
 
     is IRNode.Body.Intrinsic -> DotPrinter.NodeAppearance("rectangle", color = "lightblue", style = "filled")
@@ -51,7 +56,8 @@ class IRDotPrinter(private val program: Program, output: Writer) : DotPrinter(ou
         indent++
         output += "bgcolor=transparent;"
         for (c in program.labels.values)
-            dump(c)
+            if(c.attributes.isExternal)
+                dump(c)
         indent--
         output += "}"
     }
@@ -66,6 +72,9 @@ class IRDotPrinter(private val program: Program, output: Writer) : DotPrinter(ou
 
         when (n) {
             is IRNode.Continuation -> {
+                for(p in n.parameters)
+                    dump(p)
+
                 dump(n.body)
                 arrow(n, n.body, ContinuationBody)
             }
