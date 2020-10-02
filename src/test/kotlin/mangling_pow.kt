@@ -8,8 +8,8 @@ import java.io.File
 import java.io.FileWriter
 
 /** Figure 6(a) */
-class TestFig6Mangling {
-    val p = program {
+class TestFig6Mangling : TestProgram() {
+    override val p = program {
         var x: IRNode.Expression = bot(fn_type())
         var y: IRNode.Expression = bot(fn_type())
         var ret: IRNode.Expression = bot(fn_type())
@@ -65,23 +65,6 @@ class TestFig6Mangling {
         function("calcy", fn_type()) {
             call(fn("pow"), y, lit(3))
         }
-    }
-
-    @Test
-    fun testIRDotPrinter() {
-        //val w = System.out.bufferedWriter()
-        val f = File("ir.dot")
-        val w = FileWriter(f)
-        IRDotPrinter(p, w).print()
-        w.flush()
-    }
-
-    @Test
-    fun testGraphDotPrinter() {
-        val f = File("calls.dot")
-        val w = FileWriter(f)
-        CallGraphPrinter(p.callGraph(), w).print()
-        w.flush()
     }
 
     @Test

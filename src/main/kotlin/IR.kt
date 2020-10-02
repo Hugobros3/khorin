@@ -37,7 +37,7 @@ sealed class IRNode {
         class Call(val callee: Expression, arguments: List<Expression>) : Body(arguments) {
             override fun toString() = "$callee(" + arguments.joinToString(", ") { it.toString() } + ")"
         }
-        class Intrinsic(val intrinsicOp: IntrinsicOp, arguments: List<Expression>/*, val argumentsTypes: List<Type>, arguments: List<Expression>*/) : Body(arguments) {
+        class Intrinsic(val intrinsicOp: IntrinsicOp, arguments: List<Expression>) : Body(arguments) {
             override fun toString() = "$intrinsicOp(" + arguments.joinToString(", ") { it.toString() } + ")"
 
             enum class IntrinsicOp {
@@ -68,8 +68,8 @@ sealed class IRNode {
                 "(" + operands[0] + op.symbol + operands[1] + ")"
         }
 
-        data class Abstraction(/*val fn: Function*/val fnName: String) : Expression() { override fun toString() = fnName}
-        data class Parameter(/*val fn: Function*/val fnName: String, val i: Int) : Expression() { override fun toString() = "$fnName.args[$i]" }
+        data class Abstraction(val fnName: String) : Expression() { override fun toString() = fnName}
+        data class Parameter(val fnName: String, val i: Int) : Expression() { override fun toString() = "$fnName.args[$i]" }
 
         /** Not in the paper but you'll obviously need that */
         data class QuoteLiteral(val lit: Value.Literal) : Expression() {

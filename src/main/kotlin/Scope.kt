@@ -24,10 +24,10 @@ fun Program.visitSubgraph(node: IRNode, visited: MutableSet<IRNode> = mutableSet
             node.operands.forEach { visitSubgraph(it, visited, visitor) }
         }
         is IRNode.Expression.Abstraction -> {
-            visitSubgraph(labels[node.fnName]!!.body, visited, visitor)
+            visitSubgraph(labels[node.fnName]!!, visited, visitor)
         }
         is IRNode.Expression.Parameter -> {
-            visitSubgraph(labels[node.fnName]!!.body.arguments[node.i], visited, visitor)
+            visitSubgraph(labels[node.fnName]!!.parameters[node.i], visited, visitor)
         }
         is IRNode.Expression.QuoteLiteral -> { }
         is IRNode.Expression.Cast -> visitSubgraph(node.source, visited, visitor)

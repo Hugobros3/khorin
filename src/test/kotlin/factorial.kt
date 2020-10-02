@@ -1,60 +1,45 @@
-import analyses.callGraph
 import org.junit.Test
 import util.*
-import java.io.File
-import java.io.FileWriter
 
 /** Factorial program as in Fig. 2(d) */
-fun factorialProgram() = program {
-    var n: IRNode.Expression = lit(-1) // NB: we don't care about this literal, we just need to init this to something to set it later in "fac"
-    var ret = n // same deal
+class TestFactorial : TestProgram() {
+    override val p = program {
+        var n: IRNode.Expression = lit(-1) // NB: we don't care about this literal, we just need to init this to something to set it later in "fac"
+        var ret = n // same deal
 
-    function("fac", fn_type(int, fn_type(int))) {
-        markExternal()
-        n = param(0) // save a reference to fac's "n" parameter
-        ret = param(1) // save a reference to fac's "ret" parameter
+        function("fac", fn_type(int, fn_type(int))) {
+            markExternal()
+            n = param(0) // save a reference to fac's "n" parameter
+            ret = param(1) // save a reference to fac's "ret" parameter
 
-        val condition = infeq(param(0), lit(0)) // n <= 0
-        branch(condition, fn("then"), fn("else"))
-    }
+            val condition = infeq(param(0), lit(0)) // n <= 0
+            branch(condition, fn("then"), fn("else"))
+        }
 
-    function("then", fn_type()) {
-        call(ret, lit(1))
-    }
+        function("then", fn_type()) {
+            call(ret, lit(1))
+        }
 
-    function("else", fn_type()) {
-        call(fn("head"), lit(2), lit(1))
-    }
+        function("else", fn_type()) {
+            call(fn("head"), lit(2), lit(1))
+        }
 
-    var i: IRNode.Expression = lit(-1)
-    var r: IRNode.Expression = lit(-1)
-    function("head", fn_type(int, int)) {
-        val condition = infeq(param(0), n)
-        i = param(0)
-        r = param(1)
-        branch(condition, fn("body"), fn("next"))
-    }
+        var i: IRNode.Expression = lit(-1)
+        var r: IRNode.Expression = lit(-1)
+        function("head", fn_type(int, int)) {
+            val condition = infeq(param(0), n)
+            i = param(0)
+            r = param(1)
+            branch(condition, fn("body"), fn("next"))
+        }
 
-    function("body", fn_type()) {
-        call(fn("head"), add(i, lit(1)), mul(i, r))
-    }
+        function("body", fn_type()) {
+            call(fn("head"), add(i, lit(1)), mul(i, r))
+        }
 
-    function("next", fn_type()) {
-        call(ret, r)
-    }
-}
-
-class TestFactorial {
-    val p = factorialProgram()
-
-    @Test
-    fun testTyping() {
-        type(p)
-    }
-
-    @Test
-    fun testPrinting() {
-        println(p)
+        function("next", fn_type()) {
+            call(ret, r)
+        }
     }
 
     @Test
@@ -69,27 +54,5 @@ class TestFactorial {
     fun testEvaluation() {
         val facFN = p.labels["fac"]!!
         p.run(facFN, mutableMapOf(facFN to listOf(Value.Literal.IntValue(7), Value.Literal.Bottom(fn_type(int)))))
-    }
-
-    @Test
-    fun testIRDotPrinter() {
-        //val w = System.out.bufferedWriter()
-        val f = File("ir.dot")
-        val w = FileWriter(f)
-        IRDotPrinter(p, w).print()
-        w.flush()
-
-        println(f.absoluteFile.path)
-    }
-
-    @Test
-    fun testGraphDotPrinter() {
-        //val w = System.out.bufferedWriter()
-        val f = File("calls.dot")
-        val w = FileWriter(f)
-        CallGraphPrinter(p.callGraph(), w).print()
-        w.flush()
-
-        println(f.absoluteFile.path)
     }
 }
