@@ -13,16 +13,20 @@ val IRNode.Expression.isKnown: Boolean
     get() = this is IRNode.Expression.QuoteLiteral && this.lit !is Value.Literal.Bottom
 
 val IRNode.Expression.boolValue: Boolean?
-    get() = if (this is IRNode.Expression.QuoteLiteral && this.lit !is Value.Literal.Bottom && lit.type == Type.PrimitiveType.Bool) boolValue(lit) else null
+    get() = if (this is IRNode.Expression.QuoteLiteral && this.lit !is Value.Literal.Bottom && lit.type == Type.PrimitiveType.Bool) boolValue(
+        lit
+    ) else null
 
 val IRNode.Expression.intValue: Int?
-    get() = if (this is IRNode.Expression.QuoteLiteral && this.lit !is Value.Literal.Bottom && lit.type == Type.PrimitiveType.Int) intValue(lit) else null
+    get() = if (this is IRNode.Expression.QuoteLiteral && this.lit !is Value.Literal.Bottom && lit.type == Type.PrimitiveType.Int) intValue(
+        lit
+    ) else null
 
 val IRNode.Expression.value: Value
     get() = (this as IRNode.Expression.QuoteLiteral).lit
 
 /** Re-creates the program, performing constant folding as it goes */
-fun Program.simplify() : Program {
+fun Program.simplify(): Program {
     val i = Importer(this)
     i.import()
 
@@ -48,7 +52,7 @@ class Importer(private val program: Program) {
         if (translated.containsKey(old))
             return translated[old] as IRNode.Body
 
-        val new = when (old) {
+        var new = when (old) {
             is IRNode.Body.Call -> {
                 IRNode.Body.Call(import(old.callee), old.arguments.map { import(it) })
             }
@@ -67,6 +71,30 @@ class Importer(private val program: Program) {
                     }
                 }
             }
+        }
+
+        // Inlines bodies when we know everything...
+        while (new.arguments.all { it.isKnown } && new is IRNode.Body.Call) {
+            val cont: IRNode.Continuation = if (new.callee is IRNode.Expression.Abstraction)
+                program.labels[(new.callee as IRNode.Expression.Abstraction).fnName]!!
+            else if (new.callee.isKnown)
+                break // TODO(can we implement inlining a closure sanely here ?)
+            else
+                break
+
+            /*val calleeValue = new.callee.value as Value.Closure
+            val (abs, env) = calleeValue
+
+            // Turn the environment into substitutions
+            val substitutions = env.flatMap {
+                    (cont, vals) -> vals.mapIndexed { i, v -> Pair(IRNode.Expression.Parameter(cont.name, i), IRNode.Expression.QuoteLiteral(v)) }
+            }.toMap()*/
+
+            // Map the callee parameters to those arguments
+            val params2args: M =
+                cont.parameters.map { p: IRNode.Expression.Parameter -> Pair(p, new.arguments[p.i]) }.toMap()
+
+            new = program.substitute(cont.body, params2args)
         }
 
         translated[old] = new
@@ -110,31 +138,31 @@ class Importer(private val program: Program) {
     fun simplify(old: IRNode.Expression.PrimOp): IRNode.Expression {
         val operands = old.operands.map { import(it) }
 
-        if(operands.all { it.isKnown })
+        if (operands.all { it.isKnown })
             return IRNode.Expression.QuoteLiteral(evaluate(old.op, operands.map { it.value }))
 
         when (old.op) {
             IRNode.Expression.PrimOp.PrimOps.MUL -> {
                 // either operand being zero zeroes out the whole thing
-                if(operands.any { it.isKnown && it.intValue == 0 })
+                if (operands.any { it.isKnown && it.intValue == 0 })
                     return lit(0)
                 // multiply by one does nothing
-                if(operands[1].intValue == 1)
+                if (operands[1].intValue == 1)
                     return operands[0]
-                if(operands[0].intValue == 1)
+                if (operands[0].intValue == 1)
                     return operands[1]
             }
             IRNode.Expression.PrimOp.PrimOps.DIV,
             IRNode.Expression.PrimOp.PrimOps.MOD -> {
-                if(operands[1].intValue == 1)
+                if (operands[1].intValue == 1)
                     return operands[0]
             }
             IRNode.Expression.PrimOp.PrimOps.AND -> {
-                if(operands[0].boolValue == false || operands[1].boolValue == false)
+                if (operands[0].boolValue == false || operands[1].boolValue == false)
                     return lit(false)
             }
             IRNode.Expression.PrimOp.PrimOps.OR -> {
-                if(operands[0].boolValue == true || operands[1].boolValue == true)
+                if (operands[0].boolValue == true || operands[1].boolValue == true)
                     return lit(true)
             }
             IRNode.Expression.PrimOp.PrimOps.NOT -> {
@@ -157,7 +185,7 @@ class Importer(private val program: Program) {
             queue.add(oldContinuation)
         }
 
-        while(queue.isNotEmpty()) {
+        while (queue.isNotEmpty()) {
             val oldContinuation = queue.removeAt(0)
             newLabels[oldContinuation.name] = import(oldContinuation)
         }

@@ -74,19 +74,14 @@ class TestFig6Mangling {
         val w = FileWriter(f)
         IRDotPrinter(p, w).print()
         w.flush()
-
-        println(f.absoluteFile.path)
     }
 
     @Test
     fun testGraphDotPrinter() {
-        //val w = System.out.bufferedWriter()
         val f = File("calls.dot")
         val w = FileWriter(f)
         CallGraphPrinter(p.callGraph(), w).print()
         w.flush()
-
-        println(f.absoluteFile.path)
     }
 
     @Test
@@ -119,5 +114,10 @@ class TestFig6Mangling {
         val w = FileWriter(f)
         IRDotPrinter(simplified, w).print()
         w.flush()
+
+        val f2 = File("calls.dot")
+        val w2 = FileWriter(f2)
+        CallGraphPrinter(simplified.callGraph(), w2).print()
+        w2.flush()
     }
 }
