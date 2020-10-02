@@ -14,6 +14,7 @@ fun Program.visitSubgraph(node: IRNode, visited: MutableSet<IRNode> = mutableSet
     when (node) {
         is IRNode.Continuation -> {
             visitSubgraph(node.body, visited, visitor)
+            node.parameters.forEach { visitSubgraph(it, visited, visitor) }
         }
         is IRNode.Body -> {
             if (node is IRNode.Body.Call)

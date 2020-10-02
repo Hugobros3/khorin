@@ -1,4 +1,8 @@
+import org.junit.Test
 import util.*
+import xform.mangle
+import xform.simplify
+import xform.update_callsites
 
 class TestFig9FactorialTailrec : TestProgram() {
     override val p = program {
@@ -37,5 +41,30 @@ class TestFig9FactorialTailrec : TestProgram() {
         function("else2", fn_type()) {
             call(h_ret, r)
         }
+    }
+
+    @Test
+    fun mangleSimpleRecursion() {
+        val fac = p.labels["fac"] as IRNode.Continuation
+        val n = fac.parameters[0]
+        val f_ret = fac.parameters[1]
+
+        val help = p.labels["help"] as IRNode.Continuation
+        val i = help.parameters[0]
+        val r = help.parameters[1]
+        val h_n = help.parameters[2]
+        val h_ret = help.parameters[3]
+
+        val mangled = p.mangle(help, "help_d", fn_type(int, int), mapOf(
+            i to IRNode.Expression.Parameter("help_d", 0),
+            r to IRNode.Expression.Parameter("help_d", 1),
+            h_n to n,
+            h_ret to f_ret
+        ))
+
+        val updated = mangled.update_callsites(help, mangled.labels["help_d"]!!, listOf(0, 1)).simplify()
+
+        dumpIR(updated)
+        dumpCalls(updated)
     }
 }

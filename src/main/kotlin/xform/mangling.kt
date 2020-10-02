@@ -4,6 +4,7 @@ import IRNode
 import IRNode.*
 import Program
 import scope
+import visitGraph
 
 typealias M = Map<IRNode, IRNode>
 
@@ -39,9 +40,23 @@ fun Program.mangle(entry: Continuation, newName: String, t: Type.FnType, m: M): 
     // Kill the old version of the continuation
     // This will make the IR invalid as the previous scope of this is still alive
     // A cleanup phase is therefore needed.
-    newLabels.remove(entry.name)
+
+    // Re: in fact do not remove this, we only mangle here, we assume nothing about users of the pre-mangled version
+    // newLabels.remove(entry.name)
 
     newLabels[newName] = Continuation(newName, entry.attributes, t, substitute(entry.body, newNames))
 
     return Program(newLabels)
+}
+
+/** Finds all the calls to `old` and replaces them to calls to `new`, using the arguments of the original call, ordered and selected by `argumentsMapping` */
+fun Program.update_callsites(old: Continuation, new: Continuation, argumentsMapping: List<Int>): Program {
+    val callsiteSubstitutions = mutableMapOf<IRNode, IRNode>()
+    visitGraph {
+        body ->
+            if (body is Body.Call && body.callee == old.abstraction) {
+                callsiteSubstitutions[body] = Body.Call(new.abstraction, argumentsMapping.map { old_i -> body.arguments[old_i] })
+            }
+    }
+    return substitute(callsiteSubstitutions)
 }
