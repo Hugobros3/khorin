@@ -9,12 +9,12 @@ import java.io.Writer
 
 private fun IRNode.unique_name() = "${this.hashCode()}"
 
-private fun IRNode.label(): String = when(this) {
+private fun IRNode.label(p: Program): String = when(this) {
     is IRNode.Continuation -> "$name : $signature"
     is IRNode.Expression.Abstraction -> "&${this.fnName}"
     is IRNode.Expression.PrimOp -> this.op.symbol
     is IRNode.Body.Intrinsic -> this.intrinsicOp.toString()
-    is IRNode.Expression.Parameter -> "param${this.i}"
+    is IRNode.Expression.Parameter -> "param${this.i} : ${p.labels[fnName]!!.signature.parametersTypes[i]}"
     is IRNode.Body.Call -> "Call()"
     is IRNode.Expression.QuoteLiteral -> "${this.lit} : ${this.lit.type}"
     is IRNode.Expression.Cast -> "cast(${this.dstType})"
@@ -48,6 +48,8 @@ val ContinuationBody = DotPrinter.ArrowStyle(arrowHead = "none")
 val ParameterOf = DotPrinter.ArrowStyle(arrowHead = "none")
 val ArgumentOf = DotPrinter.ArrowStyle(arrowHead = "empty")
 
+val SimpleRecursiveCall = DotPrinter.ArrowStyle(color = "red")
+
 class IRDotPrinter(private val program: Program, output: Writer) : DotPrinter(output) {
     private val done = mutableSetOf<IRNode>()
 
@@ -68,7 +70,7 @@ class IRDotPrinter(private val program: Program, output: Writer) : DotPrinter(ou
 
         done.add(n)
 
-        node(n.unique_name(), n.label(), n.appearance())
+        node(n.unique_name(), n.label(program), n.appearance())
 
         when (n) {
             is IRNode.Continuation -> {
@@ -129,9 +131,12 @@ class CallGraphPrinter(private val graph: CallGraph, output: Writer) : DotPrinte
         output += "bgcolor=transparent;"
         for(n in graph.nodes) {
             val (continuation, edges) = n
-            node(n.c.unique_name(), n.c.label(), n.c.appearance())
+            node(n.c.unique_name(), n.c.label(graph.program), n.c.appearance())
             for(edge in edges) {
-                arrow(n.c, edge.c, ControlFlow)
+                if(edge.isSimple)
+                    arrow(n.c, edge.callee.c, SimpleRecursiveCall, "${edge.order}")
+                else
+                    arrow(n.c, edge.callee.c, ControlFlow, "${edge.order}")
             }
         }
         indent--
@@ -155,7 +160,7 @@ abstract class DotPrinter(protected val output: Writer) {
 
     data class NodeAppearance(val shape: String = "ellipse", val color: String = "black", val style: String = "solid")
 
-    data class ArrowStyle(val arrowHead: String, val fontSize: Int = 8, val fontColor: String = "grey")
+    data class ArrowStyle(val arrowHead: String = "normal", val fontSize: Int = 8, val color: String = "black", val fontColor: String = "grey")
 
     protected fun node(internalName: String, label: String, appearance: NodeAppearance) {
         output += "$internalName [ "
@@ -177,6 +182,7 @@ abstract class DotPrinter(protected val output: Writer) {
             arrowParams += ",label=\"$name\""
         arrowParams += ",fontsize=${style.fontSize}"
         arrowParams += ",fontcolor=${style.fontColor}"
+        arrowParams += ",color=${style.color}"
         output += "$src -> $dst[$arrowParams];"
     }
 }

@@ -1,12 +1,28 @@
 package analyses
 
 import Program
+import Type
+import scope
 
-data class CallGraph(val nodes: Set<Node>) {
-    data class Node(val c: IRNode.Continuation, val callees: Set<Node>) {
+data class CallGraph(val program: Program, val nodes: Set<Node>) {
+    data class Node(val c: IRNode.Continuation, val calls: Set<Call>) {
         override fun hashCode() = c.hashCode()
         override fun equals(other: Any?) = (other as? Node)?.c?.equals(c) ?: false
     }
+
+    data class Call(val callee: Node, val order: Int, val isSimple: Boolean)
+}
+
+fun Type.order(): Int = when(this) {
+    is Type.PrimitiveType -> 0
+    is Type.FnType -> 1 + this.parametersTypes.map { it.order() }.maxOrNull()!!
+}
+
+fun IRNode.Continuation.order() = this.signature.parametersTypes.map { it.order() }.maxOrNull() ?: 0
+
+fun make_call(p: Program, from: CallGraph.Node, to: CallGraph.Node): CallGraph.Call {
+    val scope = p.scope(to.c)
+    return CallGraph.Call(to, to.c.order(), scope.continuations.contains(from.c))
 }
 
 fun Program.callGraph(): CallGraph {
@@ -36,15 +52,15 @@ fun Program.callGraph(): CallGraph {
         }
     }
 
-    val nodeEdges = nodes.keys.associateWith { mutableSetOf<CallGraph.Node>() }
+    val nodeEdges = nodes.keys.associateWith { mutableSetOf<CallGraph.Call>() }
     val nodesSet = nodes.keys.map { CallGraph.Node(it, nodeEdges[it]!!) }.toSet()
     val mapCont2Node = nodesSet.map { Pair(it.c, it) }.toMap()
 
     for(n2 in nodesSet) {
-        for(edge in nodes[n2.c]!!) {
-            nodeEdges[n2.c]!! += mapCont2Node[edge]!!
+        for(dstNode in nodes[n2.c]!!) {
+            nodeEdges[n2.c]!! += make_call(this, n2, mapCont2Node[dstNode]!!)
         }
     }
 
-    return CallGraph(nodesSet)
+    return CallGraph(this, nodesSet)
 }

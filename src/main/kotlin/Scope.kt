@@ -103,5 +103,8 @@ fun Program.scope(scopeEntry: IRNode.Continuation): Scope {
         }
     }
 
+    // The entry continuation does not belong in it's
+    nodes.remove(scopeEntry)
+
     return Scope(nodes)
 }
